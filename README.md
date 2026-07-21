@@ -27,7 +27,12 @@ Carte Home Assistant personnalisée pour piloter un volet roulant (`cover`) par 
 
 ## Utilisation
 
-Ajoute une carte manuelle par volet :
+### Via l'éditeur visuel
+
+Ajoute la carte depuis le tableau de bord (**Ajouter une carte → Shutter Lames Card**) : un éditeur permet de
+choisir l'entité `cover` dans la liste, la couleur des lames et le nombre de lames, sans passer par le YAML.
+
+### Manuellement (YAML)
 
 ```yaml
 type: custom:shutter-lames-card

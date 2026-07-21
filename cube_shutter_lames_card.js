@@ -5,9 +5,120 @@
  * zone fermée (au-dessus de la limite ouverte/fermée), jamais dans la zone ouverte.
  */
 
+class ShutterLamesCardEditor extends HTMLElement {
+    setConfig(config) {
+        this._config = { ...config };
+        this._update();
+    }
+
+    set hass(hass) {
+        this._hass = hass;
+        this._update();
+    }
+
+    connectedCallback() {
+        this._update();
+    }
+
+    _updateConfig(patch) {
+        this._config = { ...this._config, ...patch };
+        this.dispatchEvent(
+            new CustomEvent("config-changed", {
+                detail: { config: this._config },
+                bubbles: true,
+                composed: true,
+            })
+        );
+    }
+
+    _toHex(color) {
+        return color && /^#([0-9a-f]{3}){1,2}$/i.test(color) ? color : "#f5a623";
+    }
+
+    _build() {
+        if (this._built) return;
+        this._built = true;
+
+        this.innerHTML = `
+            <style>
+                .row { margin-bottom: 16px; }
+                .row label {
+                    display: block;
+                    font-size: 14px;
+                    font-weight: 500;
+                    margin-bottom: 6px;
+                    color: var(--primary-text-color);
+                }
+                input[type="color"] {
+                    width: 60px;
+                    height: 36px;
+                    padding: 2px;
+                    border: 1px solid var(--divider-color, #ccc);
+                    border-radius: 6px;
+                    background: none;
+                    cursor: pointer;
+                }
+                input[type="number"] {
+                    width: 100%;
+                    box-sizing: border-box;
+                    padding: 8px;
+                    border: 1px solid var(--divider-color, #ccc);
+                    border-radius: 6px;
+                    background: var(--card-background-color, #fff);
+                    color: var(--primary-text-color);
+                }
+            </style>
+            <div class="row" id="entity-row"></div>
+            <div class="row">
+                <label>Couleur des lames</label>
+                <input type="color" id="color-input" />
+            </div>
+            <div class="row">
+                <label>Nombre de lames (pas)</label>
+                <input type="number" id="lames-input" min="1" max="30" step="1" />
+            </div>
+        `;
+
+        this._entityPicker = document.createElement("ha-entity-picker");
+        this._entityPicker.includeDomains = ["cover"];
+        this._entityPicker.label = "Entité (cover)";
+        this._entityPicker.addEventListener("value-changed", (ev) => {
+            ev.stopPropagation();
+            this._updateConfig({ entity: ev.detail.value });
+        });
+        this.querySelector("#entity-row").appendChild(this._entityPicker);
+
+        this._colorInput = this.querySelector("#color-input");
+        this._colorInput.addEventListener("input", (ev) => {
+            this._updateConfig({ color: ev.target.value });
+        });
+
+        this._lamesInput = this.querySelector("#lames-input");
+        this._lamesInput.addEventListener("input", (ev) => {
+            const val = parseInt(ev.target.value, 10);
+            if (val > 0) this._updateConfig({ lames: val });
+        });
+    }
+
+    _update() {
+        if (!this._hass || !this._config) return;
+        this._build();
+        this._entityPicker.hass = this._hass;
+        this._entityPicker.value = this._config.entity || "";
+        this._colorInput.value = this._toHex(this._config.color);
+        this._lamesInput.value = this._config.lames || 4;
+    }
+}
+
+customElements.define("shutter-lames-card-editor", ShutterLamesCardEditor);
+
 class ShutterLamesCard extends HTMLElement {
     static getStubConfig() {
         return { entity: "cover.exemple" };
+    }
+
+    static getConfigElement() {
+        return document.createElement("shutter-lames-card-editor");
     }
 
     setConfig(config) {
